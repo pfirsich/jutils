@@ -1,0 +1,21 @@
+jproc
+{"pid", "cmdline", ...}
+{"pid", "cmdline", ...}
+
+https://www.nushell.sh/
+
+jfilter thread_count > 1000 and cmdline ~= REGEX
+jtransform pid cmdline cputime="(utime + stime) / 2"
+jsort
+jsqlite data.db 'select * from table;'
+jcsv # will transform binary records to csv or csv to binary records (stdin -> stdout)
+jjson # same (stdin -> stdout)
+jprint # prints as table
+jls
+jls --recursive # like find!
+jforeach "cmd {column} {othercolumn}"
+jss <- would be very cool
+
+06-01 11:55:03|54c5|DEBUG|8bfff700|000004d5fa70|       0|                    System.cpp:202 |
+readTotal                     |adjusted=31.9%, normal=31.9%, delta=0.0%
+jcsv --delim "|" --trim --columns time,id,severity,thread_ptr,this_ptr,DISCARD,source_location,function,message
