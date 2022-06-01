@@ -12,6 +12,7 @@ struct LsArgs : clipp::ArgsBase {
     bool all = false; // . and ..
     bool noStat = false;
     bool followSymlinks = false;
+    bool absPath = false;
     std::vector<std::string> paths;
 
     void args()
@@ -20,6 +21,7 @@ struct LsArgs : clipp::ArgsBase {
         flag(all, "all", 'a').help("Include . and ..");
         flag(noStat, "no-stat", 's').help("Don't stat files. Just include filenames");
         flag(followSymlinks, "follow-symlinks", 'L').help("Follow symlinks");
+        flag(absPath, "abspath", 'p').help("Absolute paths");
         positional(paths, "paths").optional();
     }
 };
@@ -55,6 +57,7 @@ int ls(int argc, char** argv)
     assert(!args.recursive);
     assert(!args.noStat);
     assert(!args.followSymlinks);
+    assert(!args.absPath);
     assert(args.paths.empty());
 
     Output output({
