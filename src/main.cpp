@@ -1,6 +1,8 @@
 #include <iostream>
 
-#include "commands.hpp"
+int ls(int argc, char** argv);
+int print(int argc, char** argv);
+int sort(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
@@ -14,6 +16,8 @@ int main(int argc, char** argv)
         return ls(argc, argv);
     } else if (prog == "jprint") {
         return print(argc, argv);
+    } else if (prog == "jsort") {
+        return sort(argc, argv);
     } else {
         std::cerr << "Please run this executable through a symlink. argv[0] = " << prog
                   << std::endl;
