@@ -7,6 +7,8 @@ src = [
   'src/ls.cpp',
   'src/print.cpp',
   'src/sort.cpp',
+  'src/transform.cpp',
+  'src/util.cpp',
 ]
 
 executable('structuredio', src)

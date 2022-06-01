@@ -1,8 +1,24 @@
 #include <iostream>
 
+/* TODO:
+    * jfilter thread_count > 1000 and cmdline ~= REGEX
+    * Transform Expressions: jtransform pid cmdline cputime="(utime + stime) / 2"
+    * jsqlite data.db 'select * from table;'
+    * jcsv # will transform binary records to csv or csv to binary records (stdin -> stdout)
+        06-01 11:55:03|DEBUG|0xffdfdd|    main.cpp:30 | main | Log Message with pipes ||
+        jcsv --delim "|" --trim --columns time,severity,!DISCARD,sourceloc,function,message
+    * jjson # same (stdin -> stdout)
+    * jls --recursive # like find!
+    * jls stat info
+    * jforeach "cmd {column} {othercolumn}"
+    * jss would be very cool
+    * jproc exposes ps-like information
+ */
+
 int ls(int argc, char** argv);
 int print(int argc, char** argv);
 int sort(int argc, char** argv);
+int transform(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
@@ -18,6 +34,8 @@ int main(int argc, char** argv)
         return print(argc, argv);
     } else if (prog == "jsort") {
         return sort(argc, argv);
+    } else if (prog == "jtransform") {
+        return transform(argc, argv);
     } else {
         std::cerr << "Please run this executable through a symlink. argv[0] = " << prog
                   << std::endl;

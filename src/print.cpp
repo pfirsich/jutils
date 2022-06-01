@@ -3,7 +3,9 @@
 #include "../../cli/clipp.hpp"
 
 #include "io.hpp"
+#include "util.hpp"
 
+namespace {
 struct PrintArgs : clipp::ArgsBase {
     std::optional<int64_t> colWidth;
     bool sponge = false;
@@ -15,20 +17,11 @@ struct PrintArgs : clipp::ArgsBase {
     }
 };
 
-std::string toString(const Value& val)
-{
-    if (const auto str = std::get_if<std::string>(&val)) {
-        return *str;
-    } else if (const auto i64 = std::get_if<int64_t>(&val)) {
-        return std::to_string(*i64);
-    }
-    std::abort();
-};
-
 void printColumn(const std::string str, size_t colWidth)
 {
     const auto padding = colWidth > str.size() ? colWidth - str.size() : 1;
     std::cout << str << std::string(padding, ' ');
+}
 }
 
 int print(int argc, char** argv)

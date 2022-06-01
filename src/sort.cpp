@@ -4,7 +4,9 @@
 #include "../../cli/clipp.hpp"
 
 #include "io.hpp"
+#include "util.hpp"
 
+namespace {
 struct SortArgs : clipp::ArgsBase {
     bool reverse = false;
     std::string column;
@@ -16,16 +18,6 @@ struct SortArgs : clipp::ArgsBase {
     }
 };
 
-std::optional<size_t> getColumnIndex(const std::vector<Column>& columns, const std::string& column)
-{
-    for (size_t i = 0; i < columns.size(); ++i) {
-        if (columns[i].name == column) {
-            return i;
-        }
-    }
-    return std::nullopt;
-}
-
 bool compare(const Value& a, const Value& b)
 {
     assert(a.index() == b.index());
@@ -36,6 +28,7 @@ bool compare(const Value& a, const Value& b)
     } else {
         std::abort();
     }
+}
 }
 
 int sort(int argc, char** argv)

@@ -7,6 +7,7 @@
 
 #include "io.hpp"
 
+namespace {
 struct LsArgs : clipp::ArgsBase {
     bool recursive = false;
     bool all = false; // . and ..
@@ -47,6 +48,7 @@ std::string typeToString(unsigned char type)
     default:
         return "unknown";
     }
+}
 }
 
 int ls(int argc, char** argv)
