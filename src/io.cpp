@@ -94,8 +94,10 @@ std::optional<std::vector<Value>> Input::row() const
             res = ::read(STDIN_FILENO, &len, sizeof(len));
             assert(res > 0);
             std::string str(len, 0);
-            res = ::read(STDIN_FILENO, str.data(), len);
-            assert(res > 0);
+            if (len > 0) {
+                res = ::read(STDIN_FILENO, str.data(), len);
+                assert(res > 0);
+            }
             values.push_back(str);
             break;
         }
