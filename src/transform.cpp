@@ -38,7 +38,6 @@ int transform(int argc, char** argv)
 
     Output output(columns);
 
-    std::vector<std::vector<Value>> rows;
     while (const auto row = input.row()) {
         std::vector<Value> values;
         for (const auto& idx : columnIndices) {

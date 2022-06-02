@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iostream>
 #include <regex>
+#include <unordered_set>
 
 #include "../../cli/clipp.hpp"
 
@@ -9,7 +10,7 @@
 
 namespace {
 struct FilterArgs : clipp::ArgsBase {
-    std::optional<std::string> unique;
+    std::optional<std::string> unique; // TODO: Later allow expressions for this?
 
     void args() { flag(unique, "unique", 'u'); }
 };
@@ -112,18 +113,32 @@ int filter(int argc, char** argv)
 
     Input input;
 
-    assert(!args.unique);
-
     const auto& exprTokens = args.remaining();
     auto expr = !exprTokens.empty() ? parseExpr(exprTokens, input.columns())
                                     : std::make_unique<TrueExpr>();
 
     Output output(input.columns());
 
-    std::vector<std::vector<Value>> rows;
-    while (const auto row = input.row()) {
-        if (expr->eval(*row)) {
-            output.row(row.value());
+    if (args.unique) {
+        const auto idxOpt = getColumnIndex(input.columns(), *args.unique);
+        if (!idxOpt) {
+            std::cerr << "Invalid column: " << *args.unique << std::endl;
+            return 1;
+        }
+        const auto idx = idxOpt.value();
+        // TODO: Somehow build the uniqueness check into expr
+        std::unordered_set<Value> seen;
+        while (const auto row = input.row()) {
+            const auto res = seen.insert(row.value()[idx]);
+            if (res.second && expr->eval(*row)) {
+                output.row(row.value());
+            }
+        }
+    } else {
+        while (const auto row = input.row()) {
+            if (expr->eval(*row)) {
+                output.row(row.value());
+            }
         }
     }
 
