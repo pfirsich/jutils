@@ -6,11 +6,13 @@
 #include "io.hpp"
 #include "util.hpp"
 
+namespace {
 struct TransformArgs : clipp::ArgsBase {
     std::vector<std::string> columns;
 
     void args() { positional(columns, "columns"); }
 };
+}
 
 int transform(int argc, char** argv)
 {
