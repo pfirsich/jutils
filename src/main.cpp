@@ -38,6 +38,7 @@ int ls(int argc, char** argv);
 int print(int argc, char** argv);
 int sort(int argc, char** argv);
 int transform(int argc, char** argv);
+int filter(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
@@ -55,6 +56,8 @@ int main(int argc, char** argv)
         return sort(argc, argv);
     } else if (prog == "jtransform") {
         return transform(argc, argv);
+    } else if (prog == "jfilter") {
+        return filter(argc, argv);
     } else {
         std::cerr << "Please run this executable through a symlink. argv[0] = " << prog
                   << std::endl;

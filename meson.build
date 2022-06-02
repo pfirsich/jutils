@@ -3,12 +3,13 @@ project('structuredio', 'cpp', default_options : ['warning_level=3', 'cpp_std=c+
 src = [
   'src/io.cpp',
   'src/main.cpp',
+  'src/util.cpp',
 
+  'src/filter.cpp',
   'src/ls.cpp',
   'src/print.cpp',
   'src/sort.cpp',
   'src/transform.cpp',
-  'src/util.cpp',
 ]
 
 executable('structuredio', src)
