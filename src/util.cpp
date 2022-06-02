@@ -1,5 +1,7 @@
 #include "util.hpp"
 
+#include <iostream>
+
 std::optional<size_t> getColumnIndex(const std::vector<Column>& columns, const std::string& column)
 {
     for (size_t i = 0; i < columns.size(); ++i) {

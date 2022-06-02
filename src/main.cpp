@@ -19,7 +19,6 @@
       add "and", "or", "not", "xor"
       add comparisons for ints (==, !=, <, >, <=, >=)
       for strings add ==, != and contains(str, needle), startswith, endswith
-    * jfilter --unique <column>
     * jsqlite data.db 'select * from table;'
     * jcsv # will transform binary records to csv or csv to binary records (stdin -> stdout)
         06-01 11:55:03|DEBUG|0xffdfdd|    main.cpp:30 | main | Log Message with pipes ||
@@ -30,12 +29,12 @@
     * jss would be very cool
     * jproc exposes ps-like information
     * jsplice to cat row (if columns are equal) and column-wise (if #rows is equal)! What as input?
-    * jprint -> jdump with optional positional arguments as output files?
+    * Now that all output to tty is done as text, I need a command that outpus text to a non-tty.
+      like tee it could take additional positional arguments as output files. "jtee"?
     * jsort --shuffle
  */
 
 int ls(int argc, char** argv);
-int print(int argc, char** argv);
 int sort(int argc, char** argv);
 int transform(int argc, char** argv);
 int filter(int argc, char** argv);
@@ -50,8 +49,6 @@ int main(int argc, char** argv)
 
     if (prog == "jls") {
         return ls(argc, argv);
-    } else if (prog == "jprint") {
-        return print(argc, argv);
     } else if (prog == "jsort") {
         return sort(argc, argv);
     } else if (prog == "jtransform") {

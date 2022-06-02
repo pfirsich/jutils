@@ -46,10 +46,7 @@ int sort(int argc, char** argv)
 
     Output output(input.columns());
 
-    std::vector<std::vector<Value>> rows;
-    while (const auto row = input.row()) {
-        rows.push_back(row.value());
-    }
+    std::vector<std::vector<Value>> rows = input.rows();
 
     std::stable_sort(rows.begin(), rows.end(),
         [idx = idx.value(), reverse = args.reverse](const auto& a, const auto& b) {

@@ -20,12 +20,17 @@ using Value = std::variant<int64_t, std::string>;
 class Output {
 public:
     Output(std::vector<Column> columns);
+    ~Output();
 
-    void row(const std::vector<Value>& values) const;
+    void row(const std::vector<Value>& values);
 
 private:
+    void flush();
+
     std::vector<Column> columns_;
-    bool stdoutIsATty_;
+    std::vector<std::vector<Value>> rows_;
+    bool textOutput_;
+    bool flushed_ = false;
 };
 
 class Input {
@@ -33,6 +38,7 @@ public:
     Input();
 
     std::optional<std::vector<Value>> row() const;
+    std::vector<std::vector<Value>> rows() const;
 
     const auto& columns() const { return columns_; }
 

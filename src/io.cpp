@@ -2,8 +2,12 @@
 
 #include <cassert>
 #include <cstring>
+#include <iostream>
+#include <numeric>
 
 #include <unistd.h>
+
+#include "util.hpp"
 
 constexpr size_t MagicLen = 4;
 constexpr char Magic[MagicLen + 1] = "\xe9SIO";
@@ -16,32 +20,89 @@ using ColumnType = uint8_t;
 
 Output::Output(std::vector<Column> columns)
     : columns_(std::move(columns))
-    , stdoutIsATty_(::isatty(STDOUT_FILENO))
+    , textOutput_(::isatty(STDOUT_FILENO))
 {
-    ::write(STDOUT_FILENO, Magic, MagicLen);
-    const ColumnCount columnCount = columns_.size(); // TODO: byte order
-    ::write(STDOUT_FILENO, &columnCount, sizeof(columnCount));
-    for (const auto& col : columns_) {
-        const auto type = static_cast<ColumnType>(col.type);
-        ::write(STDOUT_FILENO, &type, sizeof(type));
-        const auto nameLen = static_cast<StringLen>(col.name.size());
-        ::write(STDOUT_FILENO, &nameLen, sizeof(nameLen));
-        ::write(STDOUT_FILENO, col.name.data(), col.name.size());
+    if (!textOutput_) {
+        ::write(STDOUT_FILENO, Magic, MagicLen);
+        const ColumnCount columnCount = columns_.size(); // TODO: byte order
+        ::write(STDOUT_FILENO, &columnCount, sizeof(columnCount));
+        for (const auto& col : columns_) {
+            const auto type = static_cast<ColumnType>(col.type);
+            ::write(STDOUT_FILENO, &type, sizeof(type));
+            const auto nameLen = static_cast<StringLen>(col.name.size());
+            ::write(STDOUT_FILENO, &nameLen, sizeof(nameLen));
+            ::write(STDOUT_FILENO, col.name.data(), col.name.size());
+        }
     }
 }
 
-void Output::row(const std::vector<Value>& values) const
+Output::~Output()
 {
-    ::write(STDOUT_FILENO, RowStart, MagicLen);
-    for (size_t i = 0; i < values.size(); ++i) {
-        if (const auto valI64 = std::get_if<int64_t>(&values[i])) {
-            assert(columns_[i].type == Column::Type::I64);
-            ::write(STDOUT_FILENO, valI64, sizeof(std::remove_pointer_t<decltype(valI64)>));
-        } else if (const auto valStr = std::get_if<std::string>(&values[i])) {
-            assert(columns_[i].type == Column::Type::String);
-            const auto len = static_cast<StringLen>(valStr->size());
-            ::write(STDOUT_FILENO, &len, sizeof(len));
-            ::write(STDOUT_FILENO, valStr->data(), valStr->size());
+    flush();
+}
+
+void Output::row(const std::vector<Value>& values)
+{
+    if (!textOutput_) {
+        ::write(STDOUT_FILENO, RowStart, MagicLen);
+        for (size_t i = 0; i < values.size(); ++i) {
+            if (const auto valI64 = std::get_if<int64_t>(&values[i])) {
+                assert(columns_[i].type == Column::Type::I64);
+                ::write(STDOUT_FILENO, valI64, sizeof(std::remove_pointer_t<decltype(valI64)>));
+            } else if (const auto valStr = std::get_if<std::string>(&values[i])) {
+                assert(columns_[i].type == Column::Type::String);
+                const auto len = static_cast<StringLen>(valStr->size());
+                ::write(STDOUT_FILENO, &len, sizeof(len));
+                ::write(STDOUT_FILENO, valStr->data(), valStr->size());
+            }
+        }
+    } else {
+        rows_.push_back(values);
+    }
+}
+
+namespace {
+std::vector<size_t> getColumnWidths(
+    const std::vector<Column>& columns, const std::vector<std::vector<Value>>& rows)
+{
+    std::vector<size_t> colWidths;
+    colWidths.reserve(columns.size());
+    for (const auto& col : columns) {
+        colWidths.push_back(col.name.size() + 2);
+    }
+
+    for (const auto& row : rows) {
+        for (size_t i = 0; i < row.size(); ++i) {
+            colWidths[i] = std::max(colWidths[i], toString(row[i]).size() + 2);
+        }
+    }
+    return colWidths;
+}
+
+void printPadded(const std::string& str, size_t colWidth)
+{
+    const auto padding = colWidth > str.size() ? colWidth - str.size() : 1;
+    std::cout << str << std::string(padding, ' ');
+}
+}
+
+void Output::flush()
+{
+    if (textOutput_) {
+        const auto colWidths = getColumnWidths(columns_, rows_);
+
+        for (size_t i = 0; i < columns_.size(); ++i) {
+            printPadded(columns_[i].name, colWidths[i]);
+        }
+
+        const auto fullWidth = std::accumulate(colWidths.begin(), colWidths.end(), 0ul);
+        std::cout << "\n" << std::string(fullWidth, '-') << std::endl;
+
+        for (const auto& row : rows_) {
+            for (size_t i = 0; i < columns_.size(); ++i) {
+                printPadded(toString(row[i]), colWidths[i]);
+            }
+            std::cout << std::endl;
         }
     }
 }
@@ -106,4 +167,13 @@ std::optional<std::vector<Value>> Input::row() const
         }
     }
     return values;
+}
+
+std::vector<std::vector<Value>> Input::rows() const
+{
+    std::vector<std::vector<Value>> ret;
+    while (const auto r = row()) {
+        ret.push_back(r.value());
+    }
+    return ret;
 }
