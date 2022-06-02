@@ -36,7 +36,7 @@
 
 int ls(int argc, char** argv);
 int sort(int argc, char** argv);
-int transform(int argc, char** argv);
+int select(int argc, char** argv);
 int filter(int argc, char** argv);
 
 int main(int argc, char** argv)
@@ -51,8 +51,8 @@ int main(int argc, char** argv)
         return ls(argc, argv);
     } else if (prog == "jsort") {
         return sort(argc, argv);
-    } else if (prog == "jtransform") {
-        return transform(argc, argv);
+    } else if (prog == "jselect") {
+        return select(argc, argv);
     } else if (prog == "jfilter") {
         return filter(argc, argv);
     } else {

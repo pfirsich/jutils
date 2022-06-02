@@ -6,17 +6,17 @@
 #include "util.hpp"
 
 namespace {
-struct TransformArgs : clipp::ArgsBase {
+struct SelectArgs : clipp::ArgsBase {
     std::vector<std::string> columns;
 
     void args() { positional(columns, "columns"); }
 };
 }
 
-int transform(int argc, char** argv)
+int select(int argc, char** argv)
 {
     auto parser = clipp::Parser(argv[0]);
-    const auto args = parser.parse<TransformArgs>(argc, argv).value();
+    const auto args = parser.parse<SelectArgs>(argc, argv).value();
 
     Input input;
 
