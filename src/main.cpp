@@ -1,18 +1,37 @@
 #include <iostream>
 
 /* TODO:
-    * jfilter thread_count > 1000 and cmdline ~= REGEX
+    * Rename: jtransform -> jselect
+    * Rename to jutils
+    * Default jprint --sponge output
+    * Add install command (creates symlinks)
     * Transform Expressions: jtransform pid cmdline cputime="(utime + stime) / 2"
+      integers: /+-*(), humanizebytes, humanizesibytes, humanizetimestamp
+      strings: abspath, basename, dir, substr, shell(command)
+      conversions: int(s), str(i)
+      add magic variable __rowindex__
+    * jslice 15 # head -n15
+      jslice -15 # tail -n15
+      jslice 5 18 # element 6 to 19
+      jslice 5 16 2 # skip
+    * jfilter thread_count > 1000 and cmdline =~ REGEX
+      all expressions from jtransform (for string and ints)
+      add "and", "or", "not", "xor"
+      add comparisons for ints (==, !=, <, >, <=, >=)
+      for strings add ==, != and contains(str, needle), startswith, endswith
+    * jfilter --unique <column>
     * jsqlite data.db 'select * from table;'
     * jcsv # will transform binary records to csv or csv to binary records (stdin -> stdout)
         06-01 11:55:03|DEBUG|0xffdfdd|    main.cpp:30 | main | Log Message with pipes ||
         jcsv --delim "|" --trim --columns time,severity,!DISCARD,sourceloc,function,message
     * jjson # same (stdin -> stdout)
     * jls --recursive # like find!
-    * jls stat info
     * jforeach "cmd {column} {othercolumn}"
     * jss would be very cool
     * jproc exposes ps-like information
+    * jsplice to cat row (if columns are equal) and column-wise (if #rows is equal)! What as input?
+    * jprint -> jdump with optional positional arguments as output files?
+    * jsort --shuffle
  */
 
 int ls(int argc, char** argv);
