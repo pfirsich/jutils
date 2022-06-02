@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <regex>
 
 #include "../../cli/clipp.hpp"
 
@@ -54,6 +55,25 @@ struct EqExpr : public Expr {
     }
 };
 
+struct RegexMatchExpr : public Expr {
+    size_t column;
+    std::string pattern;
+    std::regex regex;
+
+    RegexMatchExpr(size_t column, std::string pattern)
+        : column(column)
+        , pattern(pattern)
+        , regex(pattern)
+    {
+    }
+
+    bool eval(const std::vector<Value>& row) const override
+    {
+        std::smatch m;
+        return std::regex_search(std::get<std::string>(row[column]), m, regex);
+    }
+};
+
 std::unique_ptr<Expr> parseExpr(
     const std::vector<std::string>& where, const std::vector<Column>& columns)
 {
@@ -74,6 +94,9 @@ std::unique_ptr<Expr> parseExpr(
     } else if (op == "==") {
         assert(columns[*idx].type == Column::Type::String);
         return std::make_unique<EqExpr>(*idx, rhs);
+    } else if (op == "=~") {
+        assert(columns[*idx].type == Column::Type::String);
+        return std::make_unique<RegexMatchExpr>(*idx, rhs);
     } else {
         std::cerr << "Invalid operation: " << op << std::endl;
         std::exit(4);
