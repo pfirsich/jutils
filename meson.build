@@ -9,6 +9,7 @@ src = [
   'src/ls.cpp',
   'src/parse.cpp',
   'src/select.cpp',
+  'src/slice.cpp',
   'src/sort.cpp',
 ]
 

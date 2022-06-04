@@ -8,10 +8,6 @@
       strings: abspath, basename, dir, substr, shell(command)
       conversions: int(s), str(i)
       add magic variable __rowindex__
-    * jslice 15 # head -n15
-      jslice -15 # tail -n15
-      jslice 5 18 # element 6 to 19
-      jslice 5 16 2 # skip
     * jfilter thread_count > 1000 and cmdline =~ REGEX
       all expressions from jtransform (for string and ints)
       add "and", "or", "not", "xor"
@@ -34,6 +30,7 @@ int ls(int argc, char** argv);
 int sort(int argc, char** argv);
 int select(int argc, char** argv);
 int filter(int argc, char** argv);
+int slice(int argc, char** argv);
 int parse(int argc, char** argv);
 
 int main(int argc, char** argv)
@@ -52,6 +49,8 @@ int main(int argc, char** argv)
         return select(argc, argv);
     } else if (prog == "jfilter") {
         return filter(argc, argv);
+    } else if (prog == "jslice") {
+        return slice(argc, argv);
     } else if (prog == "jparse") {
         return parse(argc, argv);
     } else {
