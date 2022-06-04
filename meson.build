@@ -1,4 +1,4 @@
-project('structuredio', 'cpp', default_options : ['warning_level=3', 'cpp_std=c++17'])
+project('jutils', 'cpp', default_options : ['warning_level=3', 'cpp_std=c++17'])
 
 src = [
   'src/io.cpp',
@@ -13,4 +13,4 @@ src = [
   'src/sort.cpp',
 ]
 
-executable('structuredio', src)
+executable('jutils', src, include_directories : ['deps'])

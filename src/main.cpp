@@ -1,7 +1,6 @@
 #include <iostream>
 
 /* TODO:
-    * Rename to jutils
     * Add install command (creates symlinks)
     * Transform Expressions: jtransform pid cmdline cputime="(utime + stime) / 2"
       integers: /+-*(), humanizebytes, humanizesibytes, humanizetimestamp
@@ -16,7 +15,6 @@
     * jsqlite data.db 'select * from table;'
     * jjson # parse JSON from stdin or dump JSON to stdout
     * jls --recursive # like find!
-    * jls <args> --recursive # like find!
     * jforeach "cmd {column} {othercolumn}"
     * jss would be very cool
     * jproc exposes ps-like information
