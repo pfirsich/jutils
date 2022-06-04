@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "../../cli/clipp.hpp"
+#include <clipp/clipp.hpp>
 
 #include "io.hpp"
 

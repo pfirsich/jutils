@@ -1,7 +1,7 @@
 #include <iostream>
 #include <regex>
 
-#include "../../cli/clipp.hpp"
+#include <clipp/clipp.hpp>
 
 #include "io.hpp"
 #include "util.hpp"

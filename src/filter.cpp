@@ -2,7 +2,7 @@
 #include <regex>
 #include <unordered_set>
 
-#include "../../cli/clipp.hpp"
+#include <clipp/clipp.hpp>
 
 #include "io.hpp"
 #include "util.hpp"
