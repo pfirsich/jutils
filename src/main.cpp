@@ -1,9 +1,7 @@
 #include <iostream>
 
 /* TODO:
-    * Rename: jtransform -> jselect
     * Rename to jutils
-    * Default jprint --sponge output
     * Add install command (creates symlinks)
     * Transform Expressions: jtransform pid cmdline cputime="(utime + stime) / 2"
       integers: /+-*(), humanizebytes, humanizesibytes, humanizetimestamp
@@ -20,11 +18,9 @@
       add comparisons for ints (==, !=, <, >, <=, >=)
       for strings add ==, != and contains(str, needle), startswith, endswith
     * jsqlite data.db 'select * from table;'
-    * jcsv # will transform binary records to csv or csv to binary records (stdin -> stdout)
-        06-01 11:55:03|DEBUG|0xffdfdd|    main.cpp:30 | main | Log Message with pipes ||
-        jcsv --delim "|" --trim --columns time,severity,!DISCARD,sourceloc,function,message
-    * jjson # same (stdin -> stdout)
+    * jjson # parse JSON from stdin or dump JSON to stdout
     * jls --recursive # like find!
+    * jls <args> --recursive # like find!
     * jforeach "cmd {column} {othercolumn}"
     * jss would be very cool
     * jproc exposes ps-like information
@@ -38,6 +34,7 @@ int ls(int argc, char** argv);
 int sort(int argc, char** argv);
 int select(int argc, char** argv);
 int filter(int argc, char** argv);
+int parse(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
@@ -55,6 +52,8 @@ int main(int argc, char** argv)
         return select(argc, argv);
     } else if (prog == "jfilter") {
         return filter(argc, argv);
+    } else if (prog == "jparse") {
+        return parse(argc, argv);
     } else {
         std::cerr << "Please run this executable through a symlink. argv[0] = " << prog
                   << std::endl;

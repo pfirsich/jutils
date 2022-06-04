@@ -7,6 +7,7 @@ src = [
 
   'src/filter.cpp',
   'src/ls.cpp',
+  'src/parse.cpp',
   'src/select.cpp',
   'src/sort.cpp',
 ]
