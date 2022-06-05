@@ -10,8 +10,13 @@
 namespace {
 struct FilterArgs : clipp::ArgsBase {
     std::optional<std::string> unique; // TODO: Later allow expressions for this?
+    bool invert = false;
 
-    void args() { flag(unique, "unique", 'u'); }
+    void args()
+    {
+        flag(invert, "invert-match", 'v');
+        flag(unique, "unique", 'u');
+    }
 };
 
 struct Expr {
@@ -135,7 +140,8 @@ int filter(int argc, char** argv)
         }
     } else {
         while (const auto row = input.row()) {
-            if (expr->eval(*row)) {
+            const auto res = expr->eval(*row);
+            if ((!args.invert && res) || (args.invert && !res)) {
                 output.row(row.value());
             }
         }
