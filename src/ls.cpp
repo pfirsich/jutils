@@ -134,7 +134,7 @@ std::string getLinkTarget(const std::string& path)
         std::cerr << "Error reading symlink target: " << path << std::endl;
         std::exit(2);
     }
-    return target;
+    return std::string(target, res);
 }
 
 void entry(
