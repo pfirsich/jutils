@@ -7,6 +7,7 @@ src = [
 
   'src/filter.cpp',
   'src/ls.cpp',
+  'src/netstat.cpp',
   'src/parse.cpp',
   'src/select.cpp',
   'src/slice.cpp',
