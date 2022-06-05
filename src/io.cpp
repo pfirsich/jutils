@@ -91,17 +91,20 @@ void Output::flush()
     if (textOutput_) {
         const auto colWidths = getColumnWidths(columns_, rows_);
 
-        for (size_t i = 0; i < columns_.size(); ++i) {
+        for (size_t i = 0; i < columns_.size() - 1; ++i) {
             printPadded(columns_[i].name, colWidths[i]);
         }
+        // Print the last column without padding
+        std::cout << columns_[columns_.size() - 1].name;
 
         const auto fullWidth = std::accumulate(colWidths.begin(), colWidths.end(), 0ul);
         std::cout << "\n" << std::string(fullWidth, '-') << std::endl;
 
         for (const auto& row : rows_) {
-            for (size_t i = 0; i < columns_.size(); ++i) {
+            for (size_t i = 0; i < columns_.size() - 1; ++i) {
                 printPadded(toString(row[i]), colWidths[i]);
             }
+            std::cout << toString(row[columns_.size() - 1]);
             std::cout << std::endl;
         }
     }
