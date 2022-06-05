@@ -54,10 +54,7 @@ struct EqExpr : public Expr {
     {
     }
 
-    bool eval(const std::vector<Value>& row) const override
-    {
-        return std::get<std::string>(row[column]) == rhs;
-    }
+    bool eval(const std::vector<Value>& row) const override { return toString(row[column]) == rhs; }
 };
 
 struct RegexMatchExpr : public Expr {
@@ -94,13 +91,18 @@ std::unique_ptr<Expr> parseExpr(
     }
 
     if (op == "contains") {
-        assert(columns[*idx].type == Column::Type::String);
+        if (columns[*idx].type == Column::Type::String) {
+            std::cerr << "Column type needs to be string for regex operator" << std::endl;
+            std::exit(4);
+        }
         return std::make_unique<ContainsExpr>(*idx, rhs);
     } else if (op == "==") {
-        assert(columns[*idx].type == Column::Type::String);
         return std::make_unique<EqExpr>(*idx, rhs);
     } else if (op == "=~") {
-        assert(columns[*idx].type == Column::Type::String);
+        if (columns[*idx].type == Column::Type::String) {
+            std::cerr << "Column type needs to be string for regex operator" << std::endl;
+            std::exit(4);
+        }
         return std::make_unique<RegexMatchExpr>(*idx, rhs);
     } else {
         std::cerr << "Invalid operation: " << op << std::endl;
