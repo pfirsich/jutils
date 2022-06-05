@@ -4,6 +4,8 @@
 
 #include <arpa/inet.h>
 #include <asm/types.h>
+#include <dirent.h>
+#include <fcntl.h>
 #include <linux/inet_diag.h> /* for IPv4 and IPv6 sockets */
 #include <linux/netlink.h>
 #include <linux/sock_diag.h>
@@ -11,13 +13,14 @@
 #include <netinet/in.h>
 #include <pwd.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include <clipp/clipp.hpp>
 
 #include "io.hpp"
 
 namespace {
-struct NetlinkArgs : clipp::ArgsBase {
+struct NetstatArgs : clipp::ArgsBase {
     bool tcp = false;
     bool udp = false;
     bool ipv4 = false;
@@ -64,6 +67,20 @@ enum class Protocol {
     Udp = IPPROTO_UDP,
     UdpLite = IPPROTO_UDPLITE,
 };
+
+std::string toString(Protocol protocol)
+{
+    switch (protocol) {
+    case Protocol::Tcp:
+        return "TCP";
+    case Protocol::Udp:
+        return "UDP";
+    case Protocol::UdpLite:
+        return "UDP-Lite";
+    default:
+        return "invalid";
+    }
+}
 
 // https://github.com/torvalds/linux/blob/master/include/net/tcp_states.h
 enum class TcpState {
@@ -148,6 +165,107 @@ bool sendNetlinkRequest(int fd, Request& req)
     return ::sendmsg(fd, &msg, 0) > 0;
 }
 
+std::optional<std::string> getComm(const std::string& procPath)
+{
+    // This seems to be exactly the same as the second field of /stat, but easier to retrieve
+    const auto commPath = procPath + "/comm";
+    auto commFd = ::open(commPath.c_str(), O_RDONLY);
+    if (commFd == -1) {
+        std::cerr << "Could not open " << commPath << std::endl;
+        return std::nullopt;
+    }
+    char commBuffer[32]; // Not longer than TASK_COMM_LEN(16)
+    int commLen = ::read(commFd, commBuffer, sizeof(commBuffer));
+    ::close(commFd);
+    if (commLen < 0) {
+        std::cerr << "Could not read " << commPath << std::endl;
+        return std::nullopt;
+    }
+    // -1 to remove trailing newline
+    return std::string(commBuffer, commLen - 1);
+}
+
+struct Socket {
+    int fd;
+    int pid;
+    std::string comm;
+};
+
+std::unordered_map<uint32_t, std::vector<Socket>>& getSocketInodeMap()
+{
+    static std::unordered_map<uint32_t, std::vector<Socket>> map;
+    return map;
+}
+
+// This is roughly taken from the ss source code and it doing it this way suggests, there is no
+// nice(r) way to get the pid from a socket inode.
+void initSocketInodeMap()
+{
+    auto procDir = ::opendir("/proc/");
+    if (!procDir) {
+        std::cerr << "Could not open /proc/" << std::endl;
+        std::exit(7);
+    }
+
+    auto& socketInodeMap = getSocketInodeMap();
+
+    ::dirent* procDirent;
+    while ((procDirent = ::readdir(procDir))) {
+        if (procDirent->d_type != DT_DIR) {
+            continue;
+        }
+
+        int pid;
+        if (::sscanf(procDirent->d_name, "%d", &pid) != 1) {
+            continue;
+        }
+
+        const auto procPath = std::string("/proc/") + procDirent->d_name;
+
+        const auto fdPath = procPath + "/fd/";
+        auto fdDir = ::opendir(fdPath.c_str());
+        if (!fdDir) {
+            std::cerr << "DBG: can't open " << fdPath << std::endl;
+            continue;
+        }
+
+        const auto comm = getComm(procPath);
+        if (!comm) {
+            // Error logged in getComm
+            continue;
+        }
+
+        ::dirent* fdDirent;
+        while ((fdDirent = ::readdir(fdDir))) {
+            if (fdDirent->d_type != DT_LNK) {
+                continue;
+            }
+
+            int fd;
+            if (::sscanf(fdDirent->d_name, "%d", &fd) != 1) {
+                continue;
+            }
+
+            const auto path = fdPath + fdDirent->d_name;
+            char targetBuffer[256];
+            const auto res = ::readlink(path.c_str(), targetBuffer, sizeof(targetBuffer));
+            if (res < 0) {
+                std::cerr << "Error reading symlink target of " << path << std::endl;
+                continue;
+            }
+
+            uint32_t inode = 0;
+            const auto scanRes = ::sscanf(targetBuffer, "socket:[%u]", &inode);
+            if (scanRes < 1) {
+                // Might just be something else
+                continue;
+            }
+
+            socketInodeMap[inode].push_back(Socket { fd, pid, *comm });
+        }
+    }
+}
+
 std::string addrToString(int family, const void* addr)
 {
     char buf[INET6_ADDRSTRLEN];
@@ -157,14 +275,14 @@ std::string addrToString(int family, const void* addr)
     return buf;
 }
 
-bool processNetlinkMessage(const inet_diag_msg& msg, Output& output)
+bool processNetlinkMessage(const inet_diag_msg& msg, Output& output, const NetstatArgs& args)
 {
     if (msg.idiag_family != AF_INET && msg.idiag_family != AF_INET6) {
         std::cerr << "Unexpected family in netlink response: " << msg.idiag_family << std::endl;
         return false;
     }
     const auto user = ::getpwuid(msg.idiag_uid);
-    output.row({
+    std::vector<Value> values {
         toString(static_cast<IpFamily>(msg.idiag_family)),
         toString(static_cast<TcpState>(msg.idiag_state)),
         static_cast<int64_t>(msg.idiag_timer),
@@ -179,11 +297,28 @@ bool processNetlinkMessage(const inet_diag_msg& msg, Output& output)
         static_cast<int64_t>(msg.idiag_wqueue),
         user ? std::string(user->pw_name) : std::string("<ERROR>"),
         static_cast<int64_t>(msg.idiag_inode),
-    });
+    };
+    if (args.process) {
+        const auto& map = getSocketInodeMap();
+        const auto it = map.find(msg.idiag_inode);
+        if (it == map.end()) {
+            // Might just be a race condition, which is impossible to prevent
+            values.push_back(static_cast<int64_t>(-1));
+            values.push_back(static_cast<int64_t>(-1));
+            values.push_back(std::string(""));
+        } else {
+            assert(it->second.size() > 0);
+            // TODO: Figure out what to do here!
+            values.push_back(static_cast<int64_t>(it->second[0].fd));
+            values.push_back(static_cast<int64_t>(it->second[0].pid));
+            values.push_back(it->second[0].comm);
+        }
+    }
+    output.row(values);
     return true;
 }
 
-bool receiveNetlinkResponse(int fd, Output& output)
+bool processNetlinkResponse(int fd, Output& output, const NetstatArgs& args)
 {
     char recvBuffer[4096];
     while (true) {
@@ -211,7 +346,7 @@ bool receiveNetlinkResponse(int fd, Output& output)
             }
 
             const auto data = reinterpret_cast<const ::inet_diag_msg*>(NLMSG_DATA(header));
-            if (!processNetlinkMessage(*data, output)) {
+            if (!processNetlinkMessage(*data, output, args)) {
                 return false;
             }
             header = NLMSG_NEXT(header, num);
@@ -228,7 +363,7 @@ bool receiveNetlinkResponse(int fd, Output& output)
 int netstat(int argc, char** argv)
 {
     auto parser = clipp::Parser(argv[0]);
-    const auto args = parser.parse<NetlinkArgs>(argc, argv).value();
+    const auto args = parser.parse<NetstatArgs>(argc, argv).value();
 
     std::vector<Column> columns {
         { "family", Column::Type::String },
@@ -246,6 +381,31 @@ int netstat(int argc, char** argv)
         { "inode", Column::Type::I64 },
     };
 
+    if (args.process) {
+        columns.push_back({ "fd", Column::Type::I64 });
+        columns.push_back({ "pid", Column::Type::I64 });
+        columns.push_back({ "comm", Column::Type::String });
+        initSocketInodeMap();
+    }
+
+    const auto defaultProtocols = !args.tcp && !args.udp;
+    std::vector<Protocol> protocols;
+    if (defaultProtocols || args.tcp) {
+        protocols.push_back(Protocol::Tcp);
+    }
+    if (defaultProtocols || args.udp) {
+        protocols.push_back(Protocol::Udp);
+    }
+
+    const auto defaultFamilies = !args.ipv4 && !args.ipv6;
+    std::vector<IpFamily> families;
+    if (defaultFamilies || args.ipv4) {
+        families.push_back(IpFamily::v4);
+    }
+    if (defaultFamilies || args.ipv6) {
+        families.push_back(IpFamily::v6);
+    }
+
     Output output(columns);
 
     const auto diagSocket = ::socket(AF_NETLINK, SOCK_RAW, NETLINK_SOCK_DIAG);
@@ -254,23 +414,22 @@ int netstat(int argc, char** argv)
         return 2;
     }
 
-    auto req4 = makeInetRequest(IpFamily::v4, Protocol::Tcp);
-    if (!sendNetlinkRequest(diagSocket, req4)) {
-        std::cerr << "Could not send netlink request" << std::endl;
-        return 3;
-    }
-    if (!receiveNetlinkResponse(diagSocket, output)) {
-        std::cerr << "Could not process netlink response (IPv4, TCP)" << std::endl;
-        return 4;
-    }
-    auto req6 = makeInetRequest(IpFamily::v6, Protocol::Tcp);
-    if (!sendNetlinkRequest(diagSocket, req6)) {
-        std::cerr << "Could not send netlink request" << std::endl;
-        return 3;
-    }
-    if (!receiveNetlinkResponse(diagSocket, output)) {
-        std::cerr << "Could not process netlink response (IPv6, TCP)" << std::endl;
-        return 4;
+    for (const auto protocol : protocols) {
+        for (const auto family : families) {
+            auto req = makeInetRequest(family, protocol);
+            if (!sendNetlinkRequest(diagSocket, req)) {
+                std::cerr << "Could not send netlink request "
+                          << "(" << toString(family) << "/" << toString(protocol) << ")"
+                          << std::endl;
+                return 3;
+            }
+            if (!processNetlinkResponse(diagSocket, output, args)) {
+                std::cerr << "Could not process netlink response "
+                          << "(" << toString(family) << "/" << toString(protocol) << ")"
+                          << std::endl;
+                return 4;
+            }
+        }
     }
 
     return 0;
