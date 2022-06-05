@@ -4,3 +4,4 @@
 
 std::optional<size_t> getColumnIndex(const std::vector<Column>& columns, const std::string& column);
 std::string toString(const Value& val);
+std::optional<std::string> readFile(const std::string& path);

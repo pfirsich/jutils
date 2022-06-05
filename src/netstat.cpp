@@ -18,6 +18,7 @@
 #include <clipp/clipp.hpp>
 
 #include "io.hpp"
+#include "util.hpp"
 
 namespace {
 struct NetstatArgs : clipp::ArgsBase {
@@ -165,26 +166,6 @@ bool sendNetlinkRequest(int fd, Request& req)
     return ::sendmsg(fd, &msg, 0) > 0;
 }
 
-std::optional<std::string> getComm(const std::string& procPath)
-{
-    // This seems to be exactly the same as the second field of /stat, but easier to retrieve
-    const auto commPath = procPath + "/comm";
-    auto commFd = ::open(commPath.c_str(), O_RDONLY);
-    if (commFd == -1) {
-        std::cerr << "Could not open " << commPath << std::endl;
-        return std::nullopt;
-    }
-    char commBuffer[32]; // Not longer than TASK_COMM_LEN(16)
-    int commLen = ::read(commFd, commBuffer, sizeof(commBuffer));
-    ::close(commFd);
-    if (commLen < 0) {
-        std::cerr << "Could not read " << commPath << std::endl;
-        return std::nullopt;
-    }
-    // -1 to remove trailing newline
-    return std::string(commBuffer, commLen - 1);
-}
-
 struct Socket {
     int fd;
     int pid;
@@ -229,11 +210,16 @@ void initSocketInodeMap()
             continue;
         }
 
-        const auto comm = getComm(procPath);
-        if (!comm) {
-            // Error logged in getComm
+        // This seems to be exactly the same as the second field of /stat (which is what ss uses),
+        // but easier to retrieve
+        const auto commPath = procPath + "/comm";
+        const auto commFileData = readFile(commPath);
+        if (!commFileData) {
+            std::cerr << "Could not read " << commPath << std::endl;
             continue;
         }
+        // Remove trailing newline
+        const auto comm = commFileData->substr(0, commFileData->size() - 1);
 
         ::dirent* fdDirent;
         while ((fdDirent = ::readdir(fdDir))) {
@@ -261,9 +247,11 @@ void initSocketInodeMap()
                 continue;
             }
 
-            socketInodeMap[inode].push_back(Socket { fd, pid, *comm });
+            socketInodeMap[inode].push_back(Socket { fd, pid, comm });
         }
+        ::closedir(fdDir);
     }
+    ::closedir(procDir);
 }
 
 std::string addrToString(int family, const void* addr)

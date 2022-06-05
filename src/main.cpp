@@ -16,7 +16,6 @@
     * jjson # parse JSON from stdin or dump JSON to stdout
     * jls --recursive # like find!
     * jforeach "cmd {column} {othercolumn}"
-    * jss would be very cool
     * jproc exposes ps-like information
     * jsplice to cat row (if columns are equal) and column-wise (if #rows is equal)! What as input?
     * Now that all output to tty is done as text, I need a command that outpus text to a non-tty.
