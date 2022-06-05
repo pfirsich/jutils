@@ -30,6 +30,7 @@ int filter(int argc, char** argv);
 int slice(int argc, char** argv);
 int parse(int argc, char** argv);
 int netstat(int argc, char** argv);
+int ps(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
@@ -53,6 +54,8 @@ int main(int argc, char** argv)
         return parse(argc, argv);
     } else if (prog == "jnetstat") {
         return netstat(argc, argv);
+    } else if (prog == "jps") {
+        return ps(argc, argv);
     } else {
         std::cerr << "Please run this executable through a symlink. argv[0] = " << prog
                   << std::endl;
