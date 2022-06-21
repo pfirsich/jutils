@@ -91,15 +91,15 @@ std::unique_ptr<Expr> parseExpr(
     }
 
     if (op == "contains") {
-        if (columns[*idx].type == Column::Type::String) {
-            std::cerr << "Column type needs to be string for regex operator" << std::endl;
+        if (columns[*idx].type != Column::Type::String) {
+            std::cerr << "Column type needs to be string for contains operator" << std::endl;
             std::exit(4);
         }
         return std::make_unique<ContainsExpr>(*idx, rhs);
     } else if (op == "==") {
         return std::make_unique<EqExpr>(*idx, rhs);
     } else if (op == "=~") {
-        if (columns[*idx].type == Column::Type::String) {
+        if (columns[*idx].type != Column::Type::String) {
             std::cerr << "Column type needs to be string for regex operator" << std::endl;
             std::exit(4);
         }
