@@ -20,6 +20,16 @@
 #include "io.hpp"
 #include "util.hpp"
 
+/* Sources:
+ * https://www.man7.org/linux/man-pages/man7/sock_diag.7.html
+ * https://www.man7.org/linux/man-pages/man7/netlink.7.html
+ * https://www.man7.org/linux/man-pages/man3/netlink.3.html
+ *
+ * http://kristrev.github.io/2013/07/26/passive-monitoring-of-sockets-on-linux
+ * https://github.com/kristrev/inet-diag-example
+ * https://www.linuxjournal.com/article/7356
+ */
+
 namespace {
 struct NetstatArgs : clipp::ArgsBase {
     bool tcp = false;
